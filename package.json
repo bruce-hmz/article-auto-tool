@@ -1,0 +1,40 @@
+{
+  "name": "wechat-auto-tool",
+  "version": "1.0.0",
+  "description": "WeChat Official Account article generation and publishing workflow system",
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx src/index.ts",
+    "dev": "npx tsx watch src/index.ts",
+    "validate": "npx tsx src/index.ts validate",
+    "start:bun": "bun run src/index.ts",
+    "dev:bun": "bun --watch run src/index.ts",
+    "build:bun": "bun build src/index.ts --outdir dist --target bun",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@inquirer/prompts": "^7.0.0",
+    "axios": "^1.7.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "date-fns": "^3.0.0",
+    "dotenv": "^16.0.0",
+    "duckduckgo-search": "^1.0.7",
+    "jsdom": "^25.0.0",
+    "marked": "^14.0.0",
+    "ora": "^8.0.0",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "bun-types": "latest",
+    "tsx": "^4.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.1.4"
+  }
+}

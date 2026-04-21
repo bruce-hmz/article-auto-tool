@@ -1,0 +1,10 @@
+{
+  "voice": "温润、有深度，用类比和日常场景解释概念，避免术语堆砌",
+  "audience": "25-35岁的中国科技互联网从业者，对科技趋势和效率提升感兴趣",
+  "tone": "mixed",
+  "topicDomains": {
+    "include": ["科技趋势", "效率工具", "学习方法", "AI应用"],
+    "exclude": []
+  },
+  "promptOverrides": {}
+}

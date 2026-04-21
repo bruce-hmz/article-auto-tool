@@ -1,0 +1,55 @@
+{
+  "defaultMode": "key_checkpoint",
+  "outputDir": "output",
+  "stateDir": ".workflow-states",
+  "logging": {
+    "level": "info",
+    "file": "logs/workflow.log"
+  },
+  "llm": {
+    "comment": "LLM 配置已迁移到 .env 文件，通过 LLM_PROVIDER 和 LLM_API_KEY 等环境变量配置",
+    "providers": {
+      "claude": {
+        "models": ["claude-sonnet-4-6", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"],
+        "defaultModel": "claude-sonnet-4-6",
+        "envKey": "ANTHROPIC_API_KEY"
+      },
+      "openai": {
+        "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"],
+        "defaultModel": "gpt-4o",
+        "envKey": "OPENAI_API_KEY"
+      },
+      "deepseek": {
+        "models": ["deepseek-chat", "deepseek-coder", "deepseek-reasoner"],
+        "defaultModel": "deepseek-chat",
+        "envKey": "DEEPSEEK_API_KEY"
+      },
+      "zhipu": {
+        "models": ["glm-4-plus", "glm-4-0520", "glm-4", "glm-4-air", "glm-4-airx", "glm-4-flash"],
+        "defaultModel": "glm-4-plus",
+        "envKey": "ZHIPU_API_KEY"
+      },
+      "moonshot": {
+        "models": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"],
+        "defaultModel": "moonshot-v1-8k",
+        "envKey": "MOONSHOT_API_KEY"
+      },
+      "ollama": {
+        "models": ["llama3.1", "llama3.2", "qwen2.5", "deepseek-coder-v2", "mistral"],
+        "defaultModel": "llama3.1",
+        "envKey": null
+      }
+    }
+  },
+  "imageGeneration": {
+    "provider": "volcano",
+    "model": "doubao-seedream-4-5-251128",
+    "defaultStyle": "modern-tech",
+    "coverImageRatio": "2.35:1",
+    "illustrationRatio": "16:9"
+  },
+  "publishing": {
+    "autoPublish": false,
+    "defaultAuthor": "AI Assistant"
+  }
+}

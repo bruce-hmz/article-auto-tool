@@ -1,0 +1,16 @@
+{
+  "modes": {
+    "key_checkpoint": {
+      "description": "Pause at key checkpoints for user confirmation",
+      "pauseAt": ["step4-outline", "step5-draft", "step9-preview", "step10-publish"]
+    },
+    "auto": {
+      "description": "Fully automated execution without pauses",
+      "pauseAt": []
+    },
+    "step_by_step": {
+      "description": "Pause after every step for user confirmation",
+      "pauseAt": "all"
+    }
+  }
+}

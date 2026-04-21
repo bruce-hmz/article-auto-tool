@@ -1,0 +1,10 @@
+{
+  "voice": "描述写作风格，例如：轻松、用类比解释概念、避免术语",
+  "audience": "描述目标读者，例如：25-35岁的中国互联网从业者",
+  "tone": "formal",
+  "topicDomains": {
+    "include": ["主题1", "主题2"],
+    "exclude": ["避免的主题"]
+  },
+  "promptOverrides": {}
+}

@@ -1,0 +1,14 @@
+{
+  "id": "muggles-school",
+  "name": "麻瓜补习社",
+  "appId": "${WECHAT_APP_ID_MUGGLES}",
+  "appSecret": "${WECHAT_APP_SECRET_MUGGLES}",
+  "config": {
+    "defaultTheme": "elegant",
+    "imageStyle": "modern-tech",
+    "publishing": {
+      "defaultAuthor": "Claude AI",
+      "autoPublish": false
+    }
+  }
+}
