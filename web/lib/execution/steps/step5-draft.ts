@@ -85,8 +85,9 @@ export class Step5Draft implements StepHandler {
 
       // Load PromptManager for account-specific prompts
       const accountConfig = context.metadata.accountConfig as AccountConfig | undefined
-      const promptManager = context.accountId
-        ? await PromptManager.fromAccount(context.accountId, accountConfig)
+      const briefData = context.metadata.editorialBrief as Record<string, unknown> | undefined
+      const promptManager = context.accountId && accountConfig
+        ? PromptManager.fromBrief(accountConfig, briefData)
         : new PromptManager()
 
       const researchContext = researchMaterials && researchMaterials.length > 0

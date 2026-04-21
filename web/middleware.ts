@@ -15,6 +15,6 @@ export const config = {
      * - /_next/* (Next.js internals)
      * - /favicon.ico, etc.
      */
-    '/((?!login|api/auth|_next|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!login|register|api/auth|api/register|_next|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

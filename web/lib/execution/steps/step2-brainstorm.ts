@@ -220,8 +220,9 @@ export class Step2Brainstorm implements StepHandler {
 
     // Load PromptManager for account-specific prompts
     const accountConfig = context.metadata.accountConfig as AccountConfig | undefined
-    const promptManager = context.accountId
-      ? await PromptManager.fromAccount(context.accountId, accountConfig)
+    const briefData = context.metadata.editorialBrief as Record<string, unknown> | undefined
+    const promptManager = context.accountId && accountConfig
+      ? PromptManager.fromBrief(accountConfig, briefData)
       : new PromptManager()
 
     // Sanitize theme input

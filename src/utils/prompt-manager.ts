@@ -59,6 +59,31 @@ export class PromptManager {
   }
 
   /**
+   * Create a PromptManager from a database brief object (for web app usage).
+   * Avoids file system access, takes the brief data directly.
+   */
+  static fromBrief(
+    accountConfig: AccountConfig,
+    briefData?: {
+      voice?: string;
+      audience?: string;
+      tone?: string;
+      topicDomains?: { include?: string[]; exclude?: string[] };
+      promptOverrides?: Record<string, unknown>;
+    }
+  ): PromptManager {
+    const brief: EditorialBrief = briefData ? {
+      voice: briefData.voice,
+      audience: briefData.audience,
+      tone: (briefData.tone as EditorialBrief['tone']),
+      topicDomains: briefData.topicDomains,
+      promptOverrides: briefData.promptOverrides as EditorialBrief['promptOverrides'],
+    } : DEFAULT_BRIEF;
+
+    return new PromptManager(accountConfig.id, accountConfig, brief);
+  }
+
+  /**
    * Get the brainstorm (step 2) prompts, with account overrides applied.
    */
   getBrainstormPrompts(theme?: string): PromptTemplate {

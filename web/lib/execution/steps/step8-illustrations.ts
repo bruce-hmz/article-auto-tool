@@ -78,8 +78,9 @@ export class Step8Illustrations implements StepHandler {
 
     // Get account-specific image style
     const accountConfig = context.metadata.accountConfig as AccountConfig | undefined
-    const promptManager = context.accountId
-      ? await PromptManager.fromAccount(context.accountId, accountConfig)
+    const briefData = context.metadata.editorialBrief as Record<string, unknown> | undefined
+    const promptManager = context.accountId && accountConfig
+      ? PromptManager.fromBrief(accountConfig, briefData)
       : new PromptManager()
     const imageStyle = promptManager.getImageStyle() || 'modern minimalist'
 

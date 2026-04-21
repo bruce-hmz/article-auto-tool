@@ -1,28 +1,7 @@
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-
-/**
- * NextAuth configuration.
- *
- * Users are defined via environment variables:
- *   AUTH_USERS=admin@autotool.com:password123,user@example.com:theirpassword
- *
- * For MVP: single admin user is sufficient.
- * Format: email:password pairs separated by commas.
- */
-
-function parseAuthUsers(): Array<{ email: string; password: string }> {
-  const usersEnv = process.env.AUTH_USERS || ''
-  if (!usersEnv) {
-    // Default admin user for development
-    return [{ email: 'admin@autotool.com', password: 'admin' }]
-  }
-
-  return usersEnv.split(',').map((pair) => {
-    const [email, password] = pair.split(':')
-    return { email: email?.trim(), password: password?.trim() }
-  }).filter(u => u.email && u.password)
-}
+import { getUserByEmail } from './db/queries/users'
+import { compareSync } from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -37,22 +16,38 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const users = parseAuthUsers()
-        const user = users.find(
-          (u) => u.email === credentials.email && u.password === credentials.password
-        )
+        try {
+          const user = await getUserByEmail(credentials.email)
+          if (!user) return null
 
-        if (user) {
-          return { id: user.email, email: user.email, name: user.email.split('@')[0] }
+          const valid = compareSync(credentials.password, user.passwordHash)
+          if (!valid) return null
+
+          return { id: user.id, email: user.email, name: user.name ?? undefined }
+        } catch (error) {
+          console.error('[auth] authorize error:', error)
+          return null
         }
-
-        return null
       },
     }),
   ],
   session: {
     strategy: 'jwt',
     maxAge: 7 * 24 * 60 * 60, // 7 days
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string
+      }
+      return session
+    },
   },
   pages: {
     signIn: '/login',

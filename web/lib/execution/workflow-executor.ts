@@ -82,6 +82,7 @@ export class WorkflowExecutor {
       mode: this.state.mode,
       currentStep: this.state.currentStep,
       accountId: this.state.accountId,
+      userId: (this.state as any).userId,
       outputPath: this.state.outputPath,
       metadata: this.state.metadata || {},
       stepResults: new Map(

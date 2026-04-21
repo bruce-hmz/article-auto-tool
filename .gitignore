@@ -53,6 +53,9 @@ coverage/
 .tmp/
 .temp/
 
+# Database
+data/
+
 # Next.js
 web/.next/
 

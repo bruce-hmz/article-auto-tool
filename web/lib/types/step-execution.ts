@@ -112,6 +112,7 @@ export interface WebExecutionContext {
   mode: 'auto' | 'key_checkpoint' | 'step_by_step'
   currentStep: number
   accountId?: string
+  userId?: string
   outputPath: string
   metadata: WorkflowMetadata
   stepResults: Map<number, StepExecutionResult>
