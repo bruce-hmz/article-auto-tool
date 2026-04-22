@@ -23,23 +23,23 @@ export default function StagingPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Staging Area</h1>
-            <p className="text-muted-foreground">
-              Manage articles waiting for publishing or retry
+            <h1 className="text-lg font-semibold">Staging</h1>
+            <p className="text-xs text-muted-foreground font-mono">
+              articles waiting for publishing or retry
             </p>
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           {filters.map((f) => (
             <Button
               key={f.value}
               variant={filter === f.value ? "default" : "outline"}
+              size="sm"
               onClick={() => setFilter(f.value)}
-              className="gap-2"
+              className="gap-1.5 h-7 text-xs"
             >
-              <f.icon className="h-4 w-4" />
+              <f.icon className="h-3 w-3" />
               {f.label}
             </Button>
           ))}

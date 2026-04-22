@@ -34,7 +34,6 @@ export default function WorkflowDetailPage({
     }
   }, [params])
 
-  // Subscribe to SSE events
   useEffect(() => {
     if (!id) return
 
@@ -69,7 +68,6 @@ export default function WorkflowDetailPage({
     }
   }, [id])
 
-  // Fetch workflow state
   const { data: workflow, isLoading } = useQuery({
     queryKey: ["workflow", id],
     queryFn: async () => {
@@ -86,7 +84,6 @@ export default function WorkflowDetailPage({
 
   const steps = STEPS
 
-  // Handle user input submission
   const handleSubmitInput = async () => {
     if (!input || !pendingInteraction) return
 
@@ -116,7 +113,6 @@ export default function WorkflowDetailPage({
     }
   }
 
-  // Handle pause
   const handlePause = async () => {
     try {
       await fetch(`/api/workflows/${id}`, {
@@ -130,7 +126,6 @@ export default function WorkflowDetailPage({
     }
   }
 
-  // Handle resume
   const handleResume = async () => {
     try {
       await fetch(`/api/workflows/${id}`, {
@@ -145,7 +140,6 @@ export default function WorkflowDetailPage({
     }
   }
 
-  // Handle retry
   const handleRetry = async () => {
     try {
       await fetch(`/api/workflows/${id}/execute`, {
@@ -165,7 +159,7 @@ export default function WorkflowDetailPage({
     return (
       <MainLayout>
         <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground">Loading workflow...</div>
+          <div className="text-xs text-muted-foreground font-mono">loading...</div>
         </div>
       </MainLayout>
     )
@@ -175,11 +169,11 @@ export default function WorkflowDetailPage({
     return (
       <MainLayout>
         <div className="flex flex-col items-center justify-center py-12">
-          <div className="text-muted-foreground mb-4">Workflow not found</div>
+          <div className="text-xs text-muted-foreground font-mono mb-4">workflow not found</div>
           <Link href="/workflows">
-            <Button variant="outline">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Workflows
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+              Back
             </Button>
           </Link>
         </div>
@@ -194,85 +188,73 @@ export default function WorkflowDetailPage({
     failed: "destructive",
   }
 
+  const infoRow = (label: string, value: React.ReactNode) => (
+    <div className="flex justify-between py-1.5 border-b border-border last:border-0">
+      <span className="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
+      <span className="text-xs font-mono">{value}</span>
+    </div>
+  )
+
   return (
     <MainLayout>
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link href="/workflows">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold">
                 {(workflow.metadata?.title as string) || `Workflow ${id.slice(0, 8)}`}
               </h1>
-              <Badge variant={statusVariants[workflow.status]}>
+              <Badge variant={statusVariants[workflow.status]} className="text-[10px] font-mono">
                 {workflow.status}
               </Badge>
             </div>
-            <p className="text-muted-foreground">
-              Mode: {workflow.mode} - Started{" "}
-              {formatDistanceToNow(new Date(workflow.startedAt), { addSuffix: true })}
+            <p className="text-xs text-muted-foreground font-mono">
+              {workflow.mode} &middot; started {formatDistanceToNow(new Date(workflow.startedAt), { addSuffix: true })}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {workflow.status === "running" && !isPaused && (
-              <Button variant="outline" onClick={handlePause}>
-                <Pause className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handlePause}>
+                <Pause className="h-3.5 w-3.5 mr-1.5" />
                 Pause
               </Button>
             )}
             {(workflow.status === "paused" || isPaused) && !isWaiting && (
-              <Button variant="outline" onClick={handleResume}>
-                <Play className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handleResume}>
+                <Play className="h-3.5 w-3.5 mr-1.5" />
                 Resume
               </Button>
             )}
             {workflow.status === "failed" && (
-              <Button variant="outline" onClick={handleRetry}>
-                <RotateCcw className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handleRetry}>
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                 Retry
               </Button>
             )}
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-3">
           <Card>
-            <CardHeader>
-              <CardTitle>Workflow Info</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Info</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Workflow ID</span>
-                <span className="font-mono text-xs">{id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Mode</span>
-                <span>{workflow.mode}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Current Step</span>
-                <span>{workflow.currentStep} / {steps.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Account</span>
-                <span>{workflow.accountId || "Not selected"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Started</span>
-                <span>{format(new Date(workflow.startedAt), "PPpp")}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Updated</span>
-                <span>{format(new Date(workflow.updatedAt), "PPpp")}</span>
-              </div>
+            <CardContent>
+              {infoRow("ID", id.slice(0, 12))}
+              {infoRow("Mode", workflow.mode)}
+              {infoRow("Step", `${workflow.currentStep} / ${steps.length}`)}
+              {infoRow("Account", workflow.accountId || "none")}
+              {infoRow("Started", format(new Date(workflow.startedAt), "PPpp"))}
+              {infoRow("Updated", format(new Date(workflow.updatedAt), "PPpp"))}
               {workflow.outputPath && (
-                <div>
-                  <span className="text-muted-foreground">Output Path</span>
-                  <div className="font-mono text-xs mt-1 p-2 bg-muted rounded">
+                <div className="mt-2">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Output</span>
+                  <div className="font-mono text-[10px] mt-1 p-2 bg-muted">
                     {workflow.outputPath}
                   </div>
                 </div>
@@ -281,10 +263,10 @@ export default function WorkflowDetailPage({
           </Card>
 
           <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Step Progress</CardTitle>
-              <CardDescription>
-                {steps.filter((s) => workflow.stepResults[s.id]?.status === "completed").length} of {steps.length} steps completed
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Progress</CardTitle>
+              <CardDescription className="text-xs font-mono">
+                {steps.filter((s) => workflow.stepResults[s.id]?.status === "completed").length}/{steps.length} steps
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -298,23 +280,23 @@ export default function WorkflowDetailPage({
         </div>
 
         {isWaiting && pendingInteraction && (
-          <Card className="border-yellow-400 bg-yellow-50">
+          <Card className="border-l-2 border-l-yellow-500">
             <CardHeader>
-              <CardTitle className="text-yellow-800">User Input Required</CardTitle>
-              <CardDescription>
-                Step {pendingInteraction.stepId}: {pendingInteraction.stepName}
+              <CardTitle className="text-sm">Input Required</CardTitle>
+              <CardDescription className="text-xs font-mono">
+                step {pendingInteraction.stepId}: {pendingInteraction.stepName}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="font-medium">{pendingInteraction.message}</p>
+            <CardContent className="space-y-3">
+              <p className="text-xs font-medium">{pendingInteraction.message}</p>
 
               {pendingInteraction.type === "select" && pendingInteraction.options?.choices && (
                 <select
-                  className="w-full rounded-md border bg-background px-3 py-2"
+                  className="w-full border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                 >
-                  <option value="">Select an option...</option>
+                  <option value="">Select...</option>
                   {pendingInteraction.options.choices.map((choice) => (
                     <option key={choice.value} value={choice.value}>
                       {choice.label}
@@ -326,7 +308,7 @@ export default function WorkflowDetailPage({
               {pendingInteraction.type === "input" && (
                 <input
                   type="text"
-                  className="w-full rounded-md border bg-background px-3 py-2"
+                  className="w-full border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={pendingInteraction.options?.placeholder}
@@ -334,14 +316,15 @@ export default function WorkflowDetailPage({
               )}
 
               {pendingInteraction.type === "confirm" && (
-                <p className="text-sm text-muted-foreground">
-                  Please confirm to continue or cancel to abort.
+                <p className="text-xs text-muted-foreground">
+                  Confirm to continue, or cancel to abort.
                 </p>
               )}
 
               <div className="flex gap-2 justify-end">
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => {
                     setPendingInteraction(null)
                     setIsWaiting(false)
@@ -350,7 +333,7 @@ export default function WorkflowDetailPage({
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleSubmitInput}>
+                <Button size="sm" onClick={handleSubmitInput}>
                   {pendingInteraction.type === "confirm" ? "Confirm" : "Submit"}
                 </Button>
               </div>
@@ -359,11 +342,10 @@ export default function WorkflowDetailPage({
         )}
 
         {error && (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent>
-              <p className="text-red-600 font-medium">Error</p>
-              <p className="text-sm text-red-500">{error}</p>
-              <Button variant="outline" size="sm" className="mt-2" onClick={() => setError(null)}>
+          <Card className="border-l-2 border-l-destructive">
+            <CardContent className="py-3">
+              <p className="text-xs text-destructive font-mono">{error}</p>
+              <Button variant="outline" size="sm" className="mt-2 h-7 text-xs" onClick={() => setError(null)}>
                 Dismiss
               </Button>
             </CardContent>
@@ -372,39 +354,38 @@ export default function WorkflowDetailPage({
 
         {events.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle>Execution Log</CardTitle>
-              <CardDescription>Real-time events from workflow execution</CardDescription>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Log</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {events.slice(0, 20).map((event, index) => (
+              <div className="space-y-1 max-h-72 overflow-y-auto font-mono text-xs">
+                {events.slice(0, 30).map((event, index) => (
                   <div
                     key={index}
-                    className={`text-sm p-2 rounded ${
+                    className={`py-1 px-2 flex items-center gap-2 ${
                       event.type === "error"
-                        ? "bg-red-100 text-red-800"
+                        ? "text-red-600 bg-red-50 dark:bg-red-950/20"
                         : event.type === "completed"
-                        ? "bg-green-100 text-green-800"
+                        ? "text-green-600 bg-green-50 dark:bg-green-950/20"
                         : event.type === "progress"
-                        ? "bg-blue-100 text-blue-800"
+                        ? "text-primary bg-primary/5"
                         : event.type === "waiting"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-gray-100 text-gray-800"
+                        ? "text-yellow-600 bg-yellow-50 dark:bg-yellow-950/20"
+                        : "text-muted-foreground bg-muted"
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(event.timestamp).toLocaleTimeString()}
+                    <span className="text-[10px] text-muted-foreground w-16 shrink-0">
+                      {new Date(event.timestamp).toLocaleTimeString()}
+                    </span>
+                    <span className="text-[10px] font-medium uppercase w-16 shrink-0">{event.type}</span>
+                    {event.data.stepName && (
+                      <span className="text-[10px]">
+                        {event.data.stepId}:{event.data.stepName}
                       </span>
-                      <span className="text-xs font-medium uppercase">{event.type}</span>
-                      {event.data.stepName && (
-                        <span className="text-xs">
-                          Step {event.data.stepId}: {event.data.stepName}
-                        </span>
-                      )}
-                    </div>
-                    {event.data.message && <p className="mt-1">{event.data.message}</p>}
+                    )}
+                    {event.data.message && (
+                      <span className="truncate">{event.data.message}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -414,11 +395,11 @@ export default function WorkflowDetailPage({
 
         {Object.keys(workflow.metadata).length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle>Metadata</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Metadata</CardTitle>
             </CardHeader>
             <CardContent>
-              <pre className="text-sm bg-muted p-4 rounded-lg overflow-auto max-h-64">
+              <pre className="text-xs font-mono bg-muted p-3 overflow-auto max-h-48">
                 {JSON.stringify(workflow.metadata, null, 2)}
               </pre>
             </CardContent>

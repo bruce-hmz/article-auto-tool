@@ -12,191 +12,190 @@ import { toast } from "sonner"
 import { useState } from "react"
 
 interface BriefData {
- voice?: string
- audience?: string
- tone?: string
- topicDomains?: { include: string[]; exclude: string[] }
+  voice?: string
+  audience?: string
+  tone?: string
+  topicDomains?: { include: string[]; exclude: string[] }
 }
 
 function BriefPreview({ brief }: { brief: BriefData | null }) {
- if (!brief || (!brief.voice && !brief.audience && !brief.tone && !brief.topicDomains)) {
- return (
- <div className="text-sm text-muted-foreground italic">
- No brief configured yet. Fill in the form below to define your writing style.
- </div>
- )
- }
+  if (!brief || (!brief.voice && !brief.audience && !brief.tone && !brief.topicDomains)) {
+    return (
+      <div className="text-xs text-muted-foreground font-mono">
+        No brief configured yet. Fill in the form below.
+      </div>
+    )
+  }
 
- return (
- <div className="space-y-3">
- {brief.voice && (
- <div>
- <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Voice</dt>
- <dd className="mt-0.5 text-sm">{brief.voice}</dd>
- </div>
- )}
- {brief.audience && (
- <div>
- <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Audience</dt>
- <dd className="mt-0.5 text-sm">{brief.audience}</dd>
- </div>
- )}
- {brief.tone && (
- <div>
- <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tone</dt>
- <dd className="mt-0.5">
- <Badge variant="secondary" className="capitalize">{brief.tone}</Badge>
- </dd>
- </div>
- )}
- {brief.topicDomains && (
- <div>
- <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Topics</dt>
- {brief.topicDomains.include && brief.topicDomains.include.length > 0 && (
- <div className="flex flex-wrap gap-1 mb-1">
- {brief.topicDomains.include.map((tag, i) => (
- <Badge key={i} variant="outline" className="text-green-600 border-green-200 dark:border-green-800">{tag}</Badge>
- ))}
- </div>
- )}
- {brief.topicDomains.exclude && brief.topicDomains.exclude.length > 0 && (
- <div className="flex flex-wrap gap-1">
- {brief.topicDomains.exclude.map((tag, i) => (
- <Badge key={i} variant="outline" className="text-red-600 border-red-200 dark:border-red-800">{tag}</Badge>
- ))}
- </div>
- )}
- </div>
- )}
- </div>
- )
+  const labelClass = "text-xs font-medium text-muted-foreground uppercase tracking-wider"
+
+  return (
+    <div className="space-y-4">
+      {brief.voice && (
+        <div>
+          <dt className={labelClass}>Voice</dt>
+          <dd className="mt-1 text-sm">{brief.voice}</dd>
+        </div>
+      )}
+      {brief.audience && (
+        <div>
+          <dt className={labelClass}>Audience</dt>
+          <dd className="mt-1 text-sm">{brief.audience}</dd>
+        </div>
+      )}
+      {brief.tone && (
+        <div>
+          <dt className={labelClass}>Tone</dt>
+          <dd className="mt-1">
+            <Badge variant="secondary" className="font-mono capitalize text-xs">{brief.tone}</Badge>
+          </dd>
+        </div>
+      )}
+      {brief.topicDomains && (
+        <div>
+          <dt className={`${labelClass} mb-1.5`}>Topics</dt>
+          {brief.topicDomains.include && brief.topicDomains.include.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-1.5">
+              {brief.topicDomains.include.map((tag, i) => (
+                <span key={i} className="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5">{tag}</span>
+              ))}
+            </div>
+          )}
+          {brief.topicDomains.exclude && brief.topicDomains.exclude.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {brief.topicDomains.exclude.map((tag, i) => (
+                <span key={i} className="text-xs font-mono text-destructive bg-destructive/10 px-1.5 py-0.5">{tag}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function BriefPage() {
- const params = useParams()
- const router = useRouter()
- const queryClient = useQueryClient()
- const accountId = params.id as string
- const [showPreview, setShowPreview] = useState(false)
+  const params = useParams()
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const accountId = params.id as string
+  const [showPreview, setShowPreview] = useState(false)
 
- const { data: account } = useQuery({
- queryKey: ["account", accountId],
- queryFn: async () => {
- const res = await fetch(`/api/accounts/${accountId}`)
- if (!res.ok) throw new Error("Failed to fetch account")
- return res.json()
- },
- })
+  const { data: account } = useQuery({
+    queryKey: ["account", accountId],
+    queryFn: async () => {
+      const res = await fetch(`/api/accounts/${accountId}`)
+      if (!res.ok) throw new Error("Failed to fetch account")
+      return res.json()
+    },
+  })
 
- const { data: brief, isLoading: briefLoading } = useQuery({
- queryKey: ["brief", accountId],
- queryFn: async () => {
- const res = await fetch(`/api/briefs/${accountId}`)
- if (!res.ok) return null
- return res.json() as Promise<BriefData | null>
- },
- })
+  const { data: brief, isLoading: briefLoading } = useQuery({
+    queryKey: ["brief", accountId],
+    queryFn: async () => {
+      const res = await fetch(`/api/briefs/${accountId}`)
+      if (!res.ok) return null
+      return res.json() as Promise<BriefData | null>
+    },
+  })
 
- const saveMutation = useMutation({
- mutationFn: async (data: Record<string, unknown>) => {
- const res = await fetch(`/api/briefs/${accountId}`, {
- method: "PUT",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify(data),
- })
- if (!res.ok) {
- const err = await res.json()
- throw new Error(err.error || "Failed to save brief")
- }
- return res.json()
- },
- onSuccess: () => {
- queryClient.invalidateQueries({ queryKey: ["brief", accountId] })
- toast.success("Editorial brief saved")
- },
- onError: (err) => {
- toast.error(err.message)
- },
- })
+  const saveMutation = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const res = await fetch(`/api/briefs/${accountId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Failed to save brief")
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brief", accountId] })
+      toast.success("Editorial brief saved")
+    },
+    onError: (err) => {
+      toast.error(err.message)
+    },
+  })
 
- return (
- <MainLayout>
- <div className="space-y-6">
- <div className="flex items-center justify-between">
- <div className="flex items-center space-x-4">
- <Button variant="ghost" size="sm" onClick={() => router.push("/accounts")}>
- <ArrowLeft className="h-4 w-4 mr-2" />
- Back to Accounts
- </Button>
- </div>
- <Button
- variant="outline"
- size="sm"
- onClick={() => setShowPreview(!showPreview)}
- >
- {showPreview ? (
- <><Pencil className="h-4 w-4 mr-2" />Edit</>
- ) : (
- <><Eye className="h-4 w-4 mr-2" />Preview</>
- )}
- </Button>
- </div>
+  return (
+    <MainLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="sm" onClick={() => router.push("/accounts")}>
+              <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+              Back
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPreview(!showPreview)}
+          >
+            {showPreview ? (
+              <><Pencil className="h-3.5 w-3.5 mr-1.5" />Edit</>
+            ) : (
+              <><Eye className="h-3.5 w-3.5 mr-1.5" />Preview</>
+            )}
+          </Button>
+        </div>
 
- <div>
- <h1 className="text-2xl font-bold">Editorial Brief</h1>
- <p className="text-muted-foreground">
- {account ? `Configure writing style for ${account.name}` : "Loading..."}
- </p>
- </div>
+        <div>
+          <h1 className="text-lg font-semibold">Editorial Brief</h1>
+          <p className="text-xs text-muted-foreground font-mono">
+            {account ? `configure writing style for ${account.name}` : "loading..."}
+          </p>
+        </div>
 
- {showPreview ? (
- <Card>
- <CardHeader>
- <CardTitle>Current Brief</CardTitle>
- <CardDescription>
- Read-only preview of your editorial brief settings.
- </CardDescription>
- </CardHeader>
- <CardContent>
- <BriefPreview brief={brief ?? null} />
- </CardContent>
- </Card>
- ) : (
- <Card>
- <CardHeader>
- <CardTitle>Writing Style Configuration</CardTitle>
- <CardDescription>
- Define the voice, audience, and tone for articles published to this account.
- These settings override the defaults when generating content.
- </CardDescription>
- </CardHeader>
- <CardContent>
- {briefLoading ? (
- <div className="space-y-6">
- <div className="space-y-2">
- <div className="h-4 w-32 bg-muted animate-pulse rounded" />
- <div className="h-20 w-full bg-muted animate-pulse rounded" />
- </div>
- <div className="space-y-2">
- <div className="h-4 w-28 bg-muted animate-pulse rounded" />
- <div className="h-20 w-full bg-muted animate-pulse rounded" />
- </div>
- <div className="space-y-2">
- <div className="h-4 w-16 bg-muted animate-pulse rounded" />
- <div className="h-9 w-full bg-muted animate-pulse rounded" />
- </div>
- </div>
- ) : (
- <BriefForm
- brief={brief ?? null}
- onSubmit={(data) => saveMutation.mutateAsync(data as Record<string, unknown>)}
- loading={saveMutation.isPending}
- />
- )}
- </CardContent>
- </Card>
- )}
- </div>
- </MainLayout>
- )
+        {showPreview ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Current Brief</CardTitle>
+              <CardDescription className="text-xs">Read-only preview</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BriefPreview brief={brief ?? null} />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Writing Style Configuration</CardTitle>
+              <CardDescription className="text-xs">
+                Define voice, audience, and tone for articles on this account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {briefLoading ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="h-3 w-24 bg-muted animate-pulse" />
+                    <div className="h-16 w-full bg-muted animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 w-20 bg-muted animate-pulse" />
+                    <div className="h-16 w-full bg-muted animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 w-12 bg-muted animate-pulse" />
+                    <div className="h-9 w-full bg-muted animate-pulse" />
+                  </div>
+                </div>
+              ) : (
+                <BriefForm
+                  brief={brief ?? null}
+                  onSubmit={(data) => saveMutation.mutateAsync(data as Record<string, unknown>)}
+                  loading={saveMutation.isPending}
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </MainLayout>
+  )
 }

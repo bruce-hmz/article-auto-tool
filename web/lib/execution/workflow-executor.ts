@@ -9,7 +9,6 @@ import type { ExecutionEvent, WebExecutionContext, StepExecutionResult, StepHand
 import { ExecutionManager } from './execution-manager'
 import { workflowService } from '../services/workflow-service'
 import { STEPS } from '../constants'
-import { InteractionHandler } from './interaction-handler'
 import type { WorkflowState, WorkflowMode } from '../types'
 
 // Import all step handlers
@@ -31,7 +30,6 @@ export class WorkflowExecutor {
   private state: WorkflowState | null = null
   private context: WebExecutionContext | null = null
   private stepHandlers: Map<number, StepHandler> = new Map()
-  private interactionHandler: InteractionHandler | null = null
   private emitEvent: (event: Omit<ExecutionEvent, 'timestamp'>) => void
 
   constructor(workflow: WorkflowState) {
@@ -41,12 +39,6 @@ export class WorkflowExecutor {
 
     // Create event emitter
     this.emitEvent = ExecutionManager.createEventEmitter(this.workflowId)
-
-    // Initialize interaction handler
-    this.interactionHandler = new InteractionHandler({
-      workflowId: this.workflowId,
-      onEvent: this.emitEvent,
-    })
 
     // Register step handlers
     this.registerStepHandlers()
@@ -106,30 +98,37 @@ export class WorkflowExecutor {
       throw new Error('Workflow state not loaded')
     }
 
-    // Create execution session
-    ExecutionManager.createSession(this.workflowId)
+    // Build or refresh execution context (preserves userInput if set)
+    const prevUserInput = this.context?.userInput
+    this.context = this.buildContext()
+    if (prevUserInput) {
+      this.context.userInput = prevUserInput
+    }
+
+    // Only emit started and create session on first run
+    const existingSession = ExecutionManager.getSession(this.workflowId)
+    if (!existingSession) {
+      ExecutionManager.createSession(this.workflowId)
+    }
     ExecutionManager.updateStatus(this.workflowId, 'running')
 
-    // Build execution context
-    this.context = this.buildContext()
-
-    // Emit started event
-    this.emitEvent({
-      type: 'started',
-      data: {
-        message: 'Workflow execution started',
-        progress: {
-          current: this.state.currentStep,
-          total: STEPS.length,
+    if (!existingSession) {
+      this.emitEvent({
+        type: 'started',
+        data: {
+          message: 'Workflow execution started',
+          progress: {
+            current: this.state.currentStep,
+            total: STEPS.length,
+          },
         },
-      },
-    })
+      })
+    }
 
     const steps = STEPS
     let startIndex = this.state.currentStep
 
     try {
-      // Execute steps
       for (let i = startIndex; i < steps.length; i++) {
         const step = steps[i]
         const handler = this.stepHandlers.get(step.id)
@@ -148,7 +147,7 @@ export class WorkflowExecutor {
           continue
         }
 
-        // Check if step is already completed
+        // Skip already completed steps
         const existingResult = this.state.stepResults[step.id]
         if (existingResult?.status === 'completed') {
           this.emitEvent({
@@ -183,10 +182,25 @@ export class WorkflowExecutor {
         // Execute step
         const result = await handler.execute(this.context, this.emitEvent)
 
-        // Store result in context
-        this.context.stepResults.set(step.id, result)
+        // Handle interaction request - pause WITHOUT marking as completed
+        if (result.success && result.requiresInteraction && result.interaction) {
+          ExecutionManager.setPendingInteraction(this.workflowId, result.interaction)
+          this.emitEvent({
+            type: 'waiting',
+            data: {
+              stepId: result.interaction.stepId,
+              stepName: result.interaction.stepName,
+              message: result.interaction.message,
+              interaction: result.interaction,
+            },
+          })
+          // Clear userInput so next invocation starts fresh
+          if (this.context) this.context.userInput = undefined
+          return
+        }
 
-        // Store result in state with correct type
+        // Store result in context and state
+        this.context.stepResults.set(step.id, result)
         this.state.stepResults[step.id] = {
           status: result.success ? 'completed' : 'failed',
           data: result.data,
@@ -194,7 +208,6 @@ export class WorkflowExecutor {
           completedAt: result.success ? new Date().toISOString() : undefined,
         }
 
-        // Update workflow state
         await workflowService.updateStep(
           this.workflowId,
           step.id,
@@ -203,7 +216,7 @@ export class WorkflowExecutor {
           result.error
         )
 
-        // Handle result
+        // Handle failure
         if (!result.success) {
           this.emitEvent({
             type: 'error',
@@ -220,22 +233,6 @@ export class WorkflowExecutor {
           return
         }
 
-        // Handle interaction request
-        if (result.requiresInteraction && result.interaction) {
-          ExecutionManager.setPendingInteraction(this.workflowId, result.interaction)
-          this.emitEvent({
-            type: 'waiting',
-            data: {
-              stepId: result.interaction.stepId,
-              stepName: result.interaction.stepName,
-              message: result.interaction.message,
-              interaction: result.interaction,
-            },
-          })
-          // Pause execution - will be resumed when user input is submitted
-          return
-        }
-
         // Emit step completed event
         this.emitEvent({
           type: 'completed',
@@ -247,24 +244,9 @@ export class WorkflowExecutor {
           },
         })
 
-        // Handle mode-specific pause logic
-        if (this.state.mode === 'key_checkpoint' && step.isKeyCheckpoint && i < steps.length - 1) {
-          // Emit event about key checkpoint
-          this.emitEvent({
-            type: 'log',
-            data: {
-              stepId: step.id,
-              stepName: step.name,
-              message: 'Key checkpoint reached',
-            },
-          })
-          // In key_checkpoint mode, we continue automatically for now
-          // User can manually pause if needed
-        }
-
         // Handle skipToStep
         if (result.skipToStep !== undefined && result.skipToStep >= 0) {
-          i = result.skipToStep - 1 // -1 because loop will increment
+          i = result.skipToStep - 1
         }
       }
 
@@ -278,6 +260,9 @@ export class WorkflowExecutor {
           message: 'Workflow completed successfully!',
         },
       })
+
+      // Clean up executor reference
+      ExecutionManager.removeExecutor(this.workflowId)
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
@@ -302,65 +287,14 @@ export class WorkflowExecutor {
       throw new Error('Workflow state not initialized')
     }
 
-    // Clear pending interaction
-    ExecutionManager.clearPendingInteraction(this.workflowId)
+    // Set user input on context so the step's execute() can read it
+    this.context.userInput = input
 
-    // Get the step handler to process the input
-    const handler = this.stepHandlers.get(input.stepId)
-    if (handler && 'handleInput' in handler) {
-      const result = await (handler as any).handleInput(
-        this.context,
-        input.value as string,
-        this.emitEvent
-      )
+    // Keep currentStep at the step that needs input (don't advance)
+    this.state.currentStep = input.stepId
+    await workflowService.save(this.state)
 
-      if (result.success) {
-        // Update step result
-        this.context.stepResults.set(input.stepId, result)
-        this.state.stepResults[input.stepId] = {
-          status: 'completed',
-          data: result.data,
-          completedAt: new Date().toISOString(),
-        }
-
-        await workflowService.updateStep(
-          this.workflowId,
-          input.stepId,
-          'completed',
-          result.data
-        )
-
-        // Emit completion event
-        this.emitEvent({
-          type: 'completed',
-          data: {
-            stepId: input.stepId,
-            message: `Step ${input.stepId} completed with user input`,
-            result: result.data,
-          },
-        })
-
-        // Resume execution from next step
-        this.state.currentStep = input.stepId + 1
-        await workflowService.save(this.state)
-
-        // Continue execution
-        await this.execute()
-      } else {
-        this.emitEvent({
-          type: 'error',
-          data: {
-            stepId: input.stepId,
-            message: `Step ${input.stepId} failed: ${result.error}`,
-            error: result.error,
-          },
-        })
-      }
-    } else {
-      // No special handler, just continue execution
-      this.state.currentStep = input.stepId + 1
-      await workflowService.save(this.state)
-      await this.execute()
-    }
+    // Resume execution - the step will see userInput and process it
+    await this.execute()
   }
 }

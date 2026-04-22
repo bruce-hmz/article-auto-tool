@@ -45,6 +45,9 @@ export async function POST(
     // Start workflow execution
     const executor = new WorkflowExecutor(workflow)
 
+    // Store executor so input route can resume it
+    ExecutionManager.setExecutor(id, executor)
+
     // Run execution in background
     executor.execute().catch((error) => {
       console.error('Workflow execution error:', error)

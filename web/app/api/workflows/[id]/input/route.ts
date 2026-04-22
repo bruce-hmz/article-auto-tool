@@ -64,14 +64,23 @@ export async function POST(
       value,
     }
 
-    // Submit the input
-    const submitted = ExecutionManager.submitInput(id, input)
-    if (!submitted) {
+    // Get the executor and resume it with user input
+    const executor = ExecutionManager.getExecutor(id)
+    if (!executor) {
       return NextResponse.json(
-        { error: 'Failed to submit input' },
+        { error: 'No active executor for this workflow' },
         { status: 400 }
       )
     }
+
+    // Clear pending interaction before resuming
+    ExecutionManager.clearPendingInteraction(id)
+
+    // Resume executor in background
+    executor.handleInput(input).catch((error) => {
+      console.error('Executor handleInput error:', error)
+      ExecutionManager.updateStatus(id, 'failed')
+    })
 
     return NextResponse.json({
       success: true,

@@ -2,8 +2,7 @@
  * Execution Manager
  *
  * Singleton pattern for managing workflow execution sessions.
- * Maintains execution state, handles SSE connections, and coordinates
- * between API routes and workflow executor.
+ * Uses globalThis to ensure state is shared across all Next.js route bundles.
  */
 
 import type {
@@ -14,16 +13,28 @@ import type {
   UserInput,
 } from '../types/step-execution'
 
-// Global execution sessions store
-const sessions = new Map<string, ExecutionSession>()
+import type { WorkflowExecutor } from './workflow-executor'
 
-// SSE connection handlers
-const sseConnections = new Map<string, Set<(event: ExecutionEvent) => void>>()
+// Use globalThis to share state across Next.js route bundles (dev + production)
+type GlobalStore = {
+  __em_sessions: Map<string, ExecutionSession>
+  __em_executors: Map<string, WorkflowExecutor>
+  __em_sse: Map<string, Set<(event: ExecutionEvent) => void>>
+}
+
+const g = globalThis as unknown as GlobalStore
+
+if (!g.__em_sessions) {
+  g.__em_sessions = new Map()
+  g.__em_executors = new Map()
+  g.__em_sse = new Map()
+}
+
+const sessions = g.__em_sessions
+const executors = g.__em_executors
+const sseConnections = g.__em_sse
 
 class ExecutionManagerImpl {
-  /**
-   * Create a new execution session
-   */
   createSession(workflowId: string): ExecutionSession {
     const now = new Date().toISOString()
     const session: ExecutionSession = {
@@ -38,16 +49,10 @@ class ExecutionManagerImpl {
     return session
   }
 
-  /**
-   * Get an existing session
-   */
   getSession(workflowId: string): ExecutionSession | undefined {
     return sessions.get(workflowId)
   }
 
-  /**
-   * Update session status
-   */
   updateStatus(workflowId: string, status: ExecutionStatus): void {
     const session = sessions.get(workflowId)
     if (session) {
@@ -56,9 +61,6 @@ class ExecutionManagerImpl {
     }
   }
 
-  /**
-   * Update current step
-   */
   updateCurrentStep(workflowId: string, stepId: number): void {
     const session = sessions.get(workflowId)
     if (session) {
@@ -67,9 +69,6 @@ class ExecutionManagerImpl {
     }
   }
 
-  /**
-   * Set pending interaction
-   */
   setPendingInteraction(workflowId: string, interaction: InteractionRequest): void {
     const session = sessions.get(workflowId)
     if (session) {
@@ -79,9 +78,6 @@ class ExecutionManagerImpl {
     }
   }
 
-  /**
-   * Clear pending interaction
-   */
   clearPendingInteraction(workflowId: string): void {
     const session = sessions.get(workflowId)
     if (session) {
@@ -91,14 +87,10 @@ class ExecutionManagerImpl {
     }
   }
 
-  /**
-   * Add event to session history
-   */
   addEvent(workflowId: string, event: ExecutionEvent): void {
     const session = sessions.get(workflowId)
     if (session) {
       session.events.push(event)
-      // Keep only last 100 events to prevent memory issues
       if (session.events.length > 100) {
         session.events = session.events.slice(-100)
       }
@@ -106,9 +98,6 @@ class ExecutionManagerImpl {
     }
   }
 
-  /**
-   * Emit event to all connected SSE clients
-   */
   emitEvent(workflowId: string, event: ExecutionEvent): void {
     this.addEvent(workflowId, event)
     const connections = sseConnections.get(workflowId)
@@ -117,9 +106,6 @@ class ExecutionManagerImpl {
     }
   }
 
-  /**
-   * Register SSE connection
-   */
   registerSSEConnection(
     workflowId: string,
     handler: (event: ExecutionEvent) => void
@@ -128,8 +114,6 @@ class ExecutionManagerImpl {
       sseConnections.set(workflowId, new Set())
     }
     sseConnections.get(workflowId)!.add(handler)
-
-    // Return cleanup function
     return () => {
       const connections = sseConnections.get(workflowId)
       if (connections) {
@@ -141,52 +125,30 @@ class ExecutionManagerImpl {
     }
   }
 
-  /**
-   * Submit user input for pending interaction
-   */
-  submitInput(workflowId: string, input: UserInput): boolean {
-    const session = sessions.get(workflowId)
-    if (!session || !session.pendingInteraction) {
-      return false
-    }
-
-    if (session.pendingInteraction.stepId !== input.stepId) {
-      return false
-    }
-
-    // Emit input event
-    this.emitEvent(workflowId, {
-      type: 'input',
-      timestamp: new Date().toISOString(),
-      data: {
-        stepId: input.stepId,
-        message: 'User input received',
-      },
-    })
-
-    return true
-  }
-
-  /**
-   * Delete session
-   */
   deleteSession(workflowId: string): void {
     sessions.delete(workflowId)
     sseConnections.delete(workflowId)
+    executors.delete(workflowId)
   }
 
-  /**
-   * Get all active sessions
-   */
   getActiveSessions(): ExecutionSession[] {
     return Array.from(sessions.values()).filter(
       (s) => s.status === 'running' || s.status === 'waiting'
     )
   }
 
-  /**
-   * Create event emitter for a workflow
-   */
+  setExecutor(workflowId: string, executor: WorkflowExecutor): void {
+    executors.set(workflowId, executor)
+  }
+
+  getExecutor(workflowId: string): WorkflowExecutor | undefined {
+    return executors.get(workflowId)
+  }
+
+  removeExecutor(workflowId: string): void {
+    executors.delete(workflowId)
+  }
+
   createEventEmitter(workflowId: string): (event: Omit<ExecutionEvent, 'timestamp'>) => void {
     return (event) => {
       this.emitEvent(workflowId, {
@@ -197,7 +159,5 @@ class ExecutionManagerImpl {
   }
 }
 
-// Export singleton instance
 export const ExecutionManager = new ExecutionManagerImpl()
-
 export default ExecutionManager

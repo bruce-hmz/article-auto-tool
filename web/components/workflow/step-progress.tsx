@@ -12,7 +12,7 @@ interface StepProgressProps {
 
 export function StepProgress({ steps, stepResults, currentStep }: StepProgressProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {steps.map((step) => {
         const result = stepResults[step.id]
         const status = result?.status || (step.id < currentStep ? 'completed' : 'pending')
@@ -21,15 +21,15 @@ export function StepProgress({ steps, stepResults, currentStep }: StepProgressPr
           <div
             key={step.id}
             className={cn(
-              "flex items-center gap-3 rounded-lg p-2 text-sm",
+              "flex items-center gap-3 p-2 text-sm",
               status === 'in_progress' && "bg-primary/10",
-              status === 'completed' && "bg-green-50",
-              status === 'failed' && "bg-red-50"
+              status === 'completed' && "bg-green-50 dark:bg-green-950/20",
+              status === 'failed' && "bg-red-50 dark:bg-red-950/20"
             )}
           >
             <div
               className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
+                "flex h-5 w-5 items-center justify-center text-xs font-mono font-medium",
                 status === 'pending' && "bg-muted text-muted-foreground",
                 status === 'in_progress' && "bg-primary text-primary-foreground",
                 status === 'completed' && "bg-green-500 text-white",
@@ -39,15 +39,15 @@ export function StepProgress({ steps, stepResults, currentStep }: StepProgressPr
               {status === 'completed' ? '✓' : status === 'failed' ? '✕' : step.id}
             </div>
             <div className="flex-1">
-              <div className="font-medium">{step.name}</div>
+              <span className="text-xs font-medium">{step.name}</span>
               {step.isKeyCheckpoint && (
-                <Badge variant="outline" className="text-xs">
-                  Checkpoint
+                <Badge variant="outline" className="text-[10px] ml-2 font-mono">
+                  checkpoint
                 </Badge>
               )}
             </div>
             {result?.error && (
-              <span className="text-xs text-destructive truncate max-w-[200px]">
+              <span className="text-[10px] text-destructive font-mono truncate max-w-[200px]">
                 {result.error}
               </span>
             )}

@@ -1,8 +1,7 @@
 /**
  * Step 10: Publish to WeChat (Web Implementation)
  *
- * Publishes article to WeChat draft box.
- * Requires user confirmation at key checkpoint mode pause
+ * Publishes article to WeChat draft box using account config from context.
  */
 
 import type {
@@ -10,14 +9,12 @@ import type {
   WebExecutionContext,
   StepExecutionResult,
   ExecutionEvent,
-  InteractionRequest,
 } from '../../types/step-execution'
 import { WeChatAPI } from '../../../../src/accounts/wechat-api'
-import { AccountManager } from '../../../../src/accounts/account-manager'
 import { FileManager } from '../../file-manager'
 import * as path from 'path'
+import type { AccountConfig } from '../../../../src/types/account'
 
-// Phase tracking for multi-stage interaction
 const stepPhases = new Map<string, number>()
 
 export class Step10Publish implements StepHandler {
@@ -33,23 +30,12 @@ export class Step10Publish implements StepHandler {
     const workflowId = context.workflowId
     let phase = stepPhases.get(workflowId) || 0
 
-    // Get account configuration
-    const accountManager = new AccountManager()
-    await accountManager.loadAccounts()
-
-    const accountId = context.accountId
-    if (!accountId) {
+    // Get account config from context (set by Step 1)
+    const accountConfig = context.metadata.accountConfig as AccountConfig | undefined
+    if (!accountConfig) {
       return {
         success: false,
-        error: 'No account selected. Please complete Step 1 first.',
-      }
-    }
-
-    const account = accountManager.getAccount(accountId)
-    if (!account) {
-      return {
-        success: false,
-        error: `Account not found: ${accountId}`,
+        error: 'No account configuration found. Please complete Step 1 first.',
       }
     }
 
@@ -58,12 +44,18 @@ export class Step10Publish implements StepHandler {
       data: {
         stepId: this.id,
         stepName: this.name,
-        message: `Using account: ${account.name}`,
+        message: `Using account: ${accountConfig.name}`,
       },
     })
 
     // Get article data from context
-    const formattedArticle = context.metadata.formattedArticle
+    const formattedArticle = context.metadata.formattedArticle as {
+      title?: string
+      content?: string
+      html?: string
+      author?: string
+      digest?: string
+    } | undefined
     if (!formattedArticle) {
       return {
         success: false,
@@ -90,7 +82,7 @@ export class Step10Publish implements StepHandler {
     if (phase === 1) {
       const confirmed = context.userInput?.value
 
-      if (confirmed === false) {
+      if (confirmed === false || confirmed === 'false') {
         stepPhases.delete(workflowId)
         return {
           success: true,
@@ -111,11 +103,11 @@ export class Step10Publish implements StepHandler {
       })
 
       try {
-        // Initialize WeChat API
-        const wechatApi = new WeChatAPI(account)
+        // Initialize WeChat API with account config from context
+        const wechatApi = new WeChatAPI(accountConfig)
 
         // Get cover image if available
-        const coverImage = context.metadata.coverImage
+        const coverImage = context.metadata.coverImage as { path?: string } | undefined
         let mediaId: string | undefined
 
         if (coverImage?.path) {
@@ -151,7 +143,6 @@ export class Step10Publish implements StepHandler {
           }
         }
 
-        // Create draft
         const title = formattedArticle.title || 'Untitled Article'
         const content = formattedArticle.html || formattedArticle.content || ''
 
@@ -186,7 +177,6 @@ export class Step10Publish implements StepHandler {
             },
           })
 
-          // Save result
           const outputPath = path.join(context.outputPath, '10-publish.json')
           await FileManager.writeJSON(outputPath, {
             success: true,
@@ -229,7 +219,6 @@ export class Step10Publish implements StepHandler {
       }
     }
 
-    // Default: restart
     stepPhases.delete(workflowId)
     return {
       success: false,
@@ -237,5 +226,3 @@ export class Step10Publish implements StepHandler {
     }
   }
 }
-
-export default Step10Publish

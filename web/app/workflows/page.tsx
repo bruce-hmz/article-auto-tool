@@ -44,19 +44,15 @@ export default function WorkflowsPage() {
       setSelectedMode("auto")
       setSelectedAccountId("")
 
-      // Auto-start execution and navigate to workflow detail page
       if (workflow?.workflowId) {
         try {
-          // Start execution
           await fetch(`/api/workflows/${workflow.workflowId}/execute`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
           })
-          // Navigate to workflow detail page
           router.push(`/workflows/${workflow.workflowId}`)
         } catch (error) {
           console.error("Failed to start execution:", error)
-          // Still navigate even if execution start fails
           router.push(`/workflows/${workflow.workflowId}`)
         }
       }
@@ -82,13 +78,13 @@ export default function WorkflowsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Workflows</h1>
-            <p className="text-muted-foreground">
-              Manage your article generation and publishing workflows
+            <h1 className="text-lg font-semibold">Workflows</h1>
+            <p className="text-xs text-muted-foreground font-mono">
+              article generation and publishing
             </p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button size="sm" onClick={() => setShowCreateModal(true)}>
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
             New Workflow
           </Button>
         </div>
@@ -96,26 +92,24 @@ export default function WorkflowsPage() {
         {showCreateModal && (
           <Card>
             <CardHeader>
-              <CardTitle>Create New Workflow</CardTitle>
-              <CardDescription>
-                Choose a mode and optionally select an account
-              </CardDescription>
+              <CardTitle className="text-sm">Create New Workflow</CardTitle>
+              <CardDescription className="text-xs">Choose a mode and optionally select an account</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Mode</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">Mode</label>
                   <div className="grid grid-cols-3 gap-2">
                     {modes.map((mode) => (
                       <Button
                         key={mode.value}
                         variant={selectedMode === mode.value ? "default" : "outline"}
                         onClick={() => setSelectedMode(mode.value)}
-                        className="h-auto py-4"
+                        className="h-auto py-3"
                       >
                         <div className="text-center">
-                          <div className="font-medium">{mode.label}</div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs font-medium">{mode.label}</div>
+                          <div className="text-[10px] text-muted-foreground font-mono">
                             {mode.description}
                           </div>
                         </div>
@@ -125,11 +119,11 @@ export default function WorkflowsPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
                     Account (Optional)
                   </label>
                   <select
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="w-full border border-input bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
                     value={selectedAccountId}
                     onChange={(e) => setSelectedAccountId(e.target.value)}
                   >
@@ -143,7 +137,7 @@ export default function WorkflowsPage() {
                 </div>
 
                 {createMutation.error && (
-                  <div className="text-sm text-destructive">
+                  <div className="text-xs text-destructive font-mono">
                     {(createMutation.error as Error).message}
                   </div>
                 )}
@@ -151,6 +145,7 @@ export default function WorkflowsPage() {
                 <div className="flex gap-2 justify-end">
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => {
                       setShowCreateModal(false)
                       setSelectedMode("auto")
@@ -160,6 +155,7 @@ export default function WorkflowsPage() {
                     Cancel
                   </Button>
                   <Button
+                    size="sm"
                     onClick={handleCreate}
                     disabled={createMutation.isPending}
                   >

@@ -6,24 +6,33 @@ import { Toaster } from "sonner"
 import { useState } from "react"
 
 export function Providers({ children }: { children: React.ReactNode }) {
- const [queryClient] = useState(
- () =>
- new QueryClient({
- defaultOptions: {
- queries: {
- staleTime: 60 * 1000,
- refetchOnWindowFocus: false,
- },
- },
- })
- )
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000,
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  )
 
- return (
- <SessionProvider>
- <QueryClientProvider client={queryClient}>
- {children}
- <Toaster position="top-right" richColors closeButton />
- </QueryClientProvider>
- </SessionProvider>
- )
+  return (
+    <SessionProvider>
+      <QueryClientProvider client={queryClient}>
+        {children}
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          toastOptions={{
+            style: {
+              borderRadius: 0,
+            },
+          }}
+        />
+      </QueryClientProvider>
+    </SessionProvider>
+  )
 }

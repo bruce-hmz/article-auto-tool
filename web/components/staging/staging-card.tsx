@@ -52,35 +52,34 @@ export function StagingCard({ item, onUpdate }: StagingCardProps) {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base line-clamp-1">{item.title}</CardTitle>
-          <Badge variant={statusVariants[item.status]}>
+          <CardTitle className="text-sm font-medium line-clamp-1">{item.title}</CardTitle>
+          <Badge variant={statusVariants[item.status]} className="text-[10px] font-mono">
             {statusLabels[item.status]}
           </Badge>
         </div>
-        <CardDescription>
-          Account: {item.accountId} • Updated{" "}
-          {formatDistanceToNow(new Date(item.updatedAt), { addSuffix: true })}
+        <CardDescription className="text-xs font-mono">
+          {item.accountId} &middot; {formatDistanceToNow(new Date(item.updatedAt), { addSuffix: true })}
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-2">
-        <div className="text-sm text-muted-foreground">
-          Retry count: {item.retryCount}
+        <div className="text-xs text-muted-foreground font-mono">
+          retries: {item.retryCount}
         </div>
       </CardContent>
-      <CardFooter className="gap-2">
+      <CardFooter className="gap-1.5">
         {item.status === "failed" && (
-          <Button variant="outline" size="sm" onClick={handleRetry}>
-            <RefreshCw className="h-4 w-4 mr-1" />
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleRetry}>
+            <RefreshCw className="h-3 w-3 mr-1" />
             Retry
           </Button>
         )}
         <Button
           variant="outline"
           size="sm"
+          className="h-7 text-xs text-destructive"
           onClick={handleDelete}
-          className="text-destructive"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3 w-3" />
         </Button>
       </CardFooter>
     </Card>
